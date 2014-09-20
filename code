@@ -1,0 +1,166 @@
+import pandas as pd
+import matplotlib as plt
+
+portfolio = pd.read_excel('Portfolio.xlsx', 'Sheet2', parse_date='Date', index_col='Date')
+portfolio.head()
+
+
+trades = ((portfolio['Dollar Move'] != 0) | (portfolio['In a Trade'] == 'YES'))
+in_trade = portfolio[trades]
+trades = len(portfolio[trades])
+
+
+STD_PCT = std(in_trade['Percent Move'])
+STD_DOLLAR = std(in_trade['Dollar Move'])
+p_m = portfolio['Percent Move'].mean()
+d_m = portfolio['Dollar Move'].mean()
+posp_m = in_trade['Percent Move'].mean()
+posd_m = in_trade['Dollar Move'].mean()
+
+pmin = portfolio['Percent Move'].min()
+pmax = portfolio['Percent Move'].max()
+dmin = portfolio['Dollar Move'].min()
+dmax = portfolio['Dollar Move'].max()
+
+winners = portfolio['Dollar Move'] > 0
+winners = portfolio[winners]
+lossers = portfolio['Dollar Move'] < 0
+lossers = portfolio[lossers]
+
+winning_ratio = (len(winners)/float(trades))
+
+#COMPLETE RESULTS
+
+print 'The percent standard deviation is ' + str('%0.2f' %(STD_PCT * 100))
+print ' '
+print 'The dollar standard deviation is $' + str('%0.2f' % STD_DOLLAR)
+print ' '
+print 'The average percent move for all days even if there is not a trade on is ' + str('%0.2f' % (p_m * 100))
+print ' '
+print 'The average dollar move for all days even if there is not a trade on is $' + str('%0.2f' % d_m )
+print ' '
+print 'The average percent move for all days even if there is not a trade on is ' + str('%0.2f' % (posp_m * 100))
+print ' '
+print 'The average dollar move is for days were at least 1 position is open $' + str('%0.2f' % posd_m)
+print ' '
+print ' '
+print 'The best dollar day gain was $' + str('%0.2f' % dmax)
+print ' '
+print 'The worst dollar day loss was $' + str('%0.2f' % dmin)
+print ' '
+print 'The best percent day gain was ' + str('%0.2f' % (pmax * 100))
+print ' '
+print 'The worst percent day loss was ' + str('%0.2f' % (pmin * 100))
+print ' '
+print ' '
+print 'win/loss ratio is ' + str('%0.2f' % winning_ratio)
+
+print 'Returns in percent'
+portfolio['Percent Move'].hist(bins=15)
+
+print 'Returns in dollars'
+portfolio['Dollar Move'].hist(bins=15)
+
+scatter(portfolio['Ending Capital'], portfolio['Dollar Move'])
+
+print 'Description of best percent day gain'
+portfolio.ix[portfolio['Percent Move'].idxmax()]
+
+print 'Description of worst percent day'
+portfolio.ix[portfolio['Percent Move'].idxmin()]
+
+print 'Description of best dollar day gain'
+portfolio.ix[portfolio['Dollar Move'].idxmax()]
+
+print 'Description of worst dollar day'
+portfolio.ix[portfolio['Dollar Move'].idxmin()]
+
+#RESULTS DIVIDED BY WINNERS/LOSSERS
+
+STD_PCT_win = std(winners['Percent Move'])
+STD_DOLLAR_win = std(winners['Dollar Move'])
+STD_PCT_loss = std(lossers['Percent Move'])
+STD_DOLLAR_loss = std(lossers['Dollar Move'])
+wp_m = winners['Percent Move'].mean()
+lp_m = lossers['Percent Move'].mean()
+wd_m = winners['Dollar Move'].mean()
+ld_m = lossers['Dollar Move'].mean()
+
+#WINNERS
+
+print 'The percent standard deviation is ' + str('%0.2f' % (STD_PCT_win * 100))
+print 'The dollar standard deviation is $' + str('%0.2f' % STD_DOLLAR_win)
+print 'The average percent move is ' + str('%0.2f' % (wp_m*100))
+print 'The average dollar move is $' + str('%0.2f' % (wd_m))
+
+winners['Percent Move'].hist()
+
+winners['Dollar Move'].hist()
+
+print 'Value of dollar gains vs. Account size'
+scatter(winners['Ending Capital'], winners['Dollar Move'])
+
+
+#LOSERS
+
+print 'The percent standard deviation is ' + str('%0.2f' % (STD_PCT_loss * 100))
+print 'The dollar standard deviation is $' + str('%0.2f' % STD_DOLLAR_loss)
+print 'The average percent move is ' + str('%0.2f' % (lp_m*100))
+print 'The average dollar move is $' + str('%0.2f' %(ld_m))
+
+lossers['Percent Move'].hist()
+
+lossers['Dollar Move'].hist(bins=15)
+
+print 'Absolute value of dollar losses vs. Account size'
+scatter(lossers['Ending Capital'], (-lossers['Dollar Move']))
+
+pct = portfolio['Percent Move']
+pct.groupby(pct.index.year).mean()
+
+#RESULTS BY STD AWAY FROM THE MEAN
+
+std_one = (abs(in_trade['Percent Move']) >= abs(STD_PCT)) & (abs(in_trade['Percent Move']) < (STD_PCT * 2))
+std_two = (abs(in_trade['Percent Move']) >= (STD_PCT * 2)) & (abs(in_trade['Percent Move']) < (STD_PCT * 3))
+std_three = abs(in_trade['Percent Move']) >= (STD_PCT * 3)
+
+one_std = in_trade[std_one]
+two_std = in_trade[std_two]
+three_std = in_trade[std_three]
+
+scatter(one_std['Ending Capital'], (one_std['Dollar Move']), c='green')
+scatter(two_std['Ending Capital'], (two_std['Dollar Move']), c='yellow')
+scatter(three_std['Ending Capital'], (three_std['Dollar Move']), c='red')
+
+one_std['Dollar Move'].cumsum().plot(style='-o', title='Cumsum of returns per std')
+two_std['Dollar Move'].cumsum().plot(style='-*')
+three_std['Dollar Move'].cumsum().plot(style='-s')
+
+one_std['Dollar Move'].cumsum().plot(style='-o', title='Cumsum of returns per std')
+
+#STD IN DOLLARS
+
+std_oned = (abs(in_trade['Dollar Move']) >= abs(STD_DOLLAR)) & (abs(in_trade['Dollar Move']) < (STD_DOLLAR * 2))
+std_twod = (abs(in_trade['Dollar Move']) >= (STD_DOLLAR * 2)) & (abs(in_trade['Dollar Move']) < (STD_DOLLAR * 3))
+std_threed = abs(in_trade['Dollar Move']) >= (STD_DOLLAR * 3)
+
+one_stdd = in_trade[std_oned]
+two_stdd = in_trade[std_twod]
+three_stdd = in_trade[std_threed]
+
+scatter(one_stdd['Ending Capital'], (one_stdd['Dollar Move']), color='green')
+scatter(two_stdd['Ending Capital'], (two_stdd['Dollar Move']), color='yellow')
+scatter(three_stdd['Ending Capital'], (three_stdd['Dollar Move']), color='red',)
+
+one_stdd['Dollar Move'].cumsum().plot(style='-o', title='Cumsum of returns per std')
+two_stdd['Dollar Move'].cumsum().plot(style='-*')
+three_stdd['Dollar Move'].cumsum().plot(style='-s')
+
+future_days = 5 # This is the days looking forward after T. So if you want to have 5 days in total put 4 
+for i in range(future_days):
+    column_name = 'Day_PCT+' + str(i+2)
+    shift_value = -(i+2)
+    portfolio[column_name] = ((portfolio['Last'].shift(shift_value) - data['Open'].shift(-1) ) / data['Open'].shift(-1) ) *100
+
+
+                                 
