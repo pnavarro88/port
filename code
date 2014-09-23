@@ -2,7 +2,20 @@ import pandas as pd
 import matplotlib as plt
 
 portfolio = pd.read_excel('Portfolio.xlsx', 'Sheet2', parse_date='Date', index_col='Date')
-portfolio.head()
+
+#create a binary column. 1 = trade is on 0 = no trade on
+portfolio['Trade'] = 1
+for key in portfolio['In a Trade'].keys():
+    if portfolio['In a Trade'][key] == 'Holiday':
+        portfolio['Trade'][key] = 0 
+    elif portfolio['In a Trade'][key] == 'NO':
+        portfolio['Trade'][key] = 0
+
+#TESTING
+pd.rolling_sum(portfolio.Trade, 20, min_periods=1).plot()
+#pd.rolling_sum(portfolio['Dollar Move'], 20, min_periods=1).plot(secondary_y=True, legend=True)
+pd.rolling_sum(portfolio['Percent Move'], 20, min_periods=1).plot(secondary_y=True, legend=True)
+
 
 
 trades = ((portfolio['Dollar Move'] != 0) | (portfolio['In a Trade'] == 'YES'))
@@ -63,6 +76,11 @@ portfolio['Dollar Move'].hist(bins=15)
 
 scatter(portfolio['Ending Capital'], portfolio['Dollar Move'])
 
+#This tells us how much gain per number of days in which a trade is on. The higher the better.
+ratio = ((pd.rolling_sum(portfolio['Dollar Move'], 20, min_periods=1))/
+         (pd.rolling_sum(portfolio.Trade, 20, min_periods=1)))
+ratio.plot(title='Ratio of Dollar gains to Number of trades in a 20 day window')
+
 print 'Description of best percent day gain'
 portfolio.ix[portfolio['Percent Move'].idxmax()]
 
@@ -75,7 +93,7 @@ portfolio.ix[portfolio['Dollar Move'].idxmax()]
 print 'Description of worst dollar day'
 portfolio.ix[portfolio['Dollar Move'].idxmin()]
 
-#RESULTS DIVIDED BY WINNERS/LOSSERS
+#RESULTS divded by win.loss
 
 STD_PCT_win = std(winners['Percent Move'])
 STD_DOLLAR_win = std(winners['Dollar Move'])
@@ -102,7 +120,6 @@ scatter(winners['Ending Capital'], winners['Dollar Move'])
 
 
 #LOSERS
-
 print 'The percent standard deviation is ' + str('%0.2f' % (STD_PCT_loss * 100))
 print 'The dollar standard deviation is $' + str('%0.2f' % STD_DOLLAR_loss)
 print 'The average percent move is ' + str('%0.2f' % (lp_m*100))
@@ -115,10 +132,40 @@ lossers['Dollar Move'].hist(bins=15)
 print 'Absolute value of dollar losses vs. Account size'
 scatter(lossers['Ending Capital'], (-lossers['Dollar Move']))
 
-pct = portfolio['Percent Move']
-pct.groupby(pct.index.year).mean()
+#PLOTS
+PL = pd.rolling_sum(portfolio['Dollar Move'], 20)
+PL.plot(title ='20 day rolling P/L')
 
-#RESULTS BY STD AWAY FROM THE MEAN
+roll_gains = pd.rolling_sum(winners['Dollar Move'], 20, min_periods=1) 
+roll_loses = pd.rolling_sum(lossers['Dollar Move'], 20, min_periods=1)
+roll_gains.plot(title='20 day rolling gains and losses')
+roll_loses.plot()
+
+
+#RETURNS by month and day
+
+dollar = portfolio['Dollar Move']
+pct.groupby(pct.index.weekday).mean()
+month_avg = dollar.groupby(dollar.index.month).mean()
+month_min = dollar.groupby(dollar.index.month).min()
+month_max = dollar.groupby(dollar.index.month).max()
+month_avg.plot(kind='bar')
+month_min.plot(style='-*', color='red', secondary_y=True, label=True)
+month_max.plot(style='-+', color='green', secondary_y=True,
+               label=True, title='Dollar Returns by Month w/ Min & Max')
+
+
+days_of_week = dollar.groupby(dollar.index.dayofweek).mean()
+days_of_week = days_of_week.dropna()
+mon_min = dollar.groupby(dollar.index.dayofweek).min()
+mon_max = dollar.groupby(dollar.index.dayofweek).max()
+days_of_week.plot(kind='bar')
+mon_min.plot(style='-*', color='red', secondary_y=True, label=True)
+mon_max.plot(style='-+', color='green', secondary_y=True,
+               label=True, title='Dollar Returns by Day of week w/ Min & Max')
+               
+               
+#RESTURN BY STD
 
 std_one = (abs(in_trade['Percent Move']) >= abs(STD_PCT)) & (abs(in_trade['Percent Move']) < (STD_PCT * 2))
 std_two = (abs(in_trade['Percent Move']) >= (STD_PCT * 2)) & (abs(in_trade['Percent Move']) < (STD_PCT * 3))
@@ -137,8 +184,6 @@ two_std['Dollar Move'].cumsum().plot(style='-*')
 three_std['Dollar Move'].cumsum().plot(style='-s')
 
 one_std['Dollar Move'].cumsum().plot(style='-o', title='Cumsum of returns per std')
-
-#STD IN DOLLARS
 
 std_oned = (abs(in_trade['Dollar Move']) >= abs(STD_DOLLAR)) & (abs(in_trade['Dollar Move']) < (STD_DOLLAR * 2))
 std_twod = (abs(in_trade['Dollar Move']) >= (STD_DOLLAR * 2)) & (abs(in_trade['Dollar Move']) < (STD_DOLLAR * 3))
@@ -162,5 +207,11 @@ for i in range(future_days):
     shift_value = -(i+2)
     portfolio[column_name] = ((portfolio['Last'].shift(shift_value) - data['Open'].shift(-1) ) / data['Open'].shift(-1) ) *100
 
-
+data['Day_PCT_Short'] = (-((data['Last'].shift(-1) - data['Open'].shift(-1))/ data['Open'].shift(-1))*100)
+for i in range(future_days):
+    column_name_short = 'Day_PCT_Short+' + str(i+2)
+    shift_value_short = -(i+2)
+    data[column_name_short] = (-((data['Last'].shift(shift_value_short) - data['Open'].shift(-1))/
+                                 data['Open'].shift(-1))* 100)
+                                 
                                  
