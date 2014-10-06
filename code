@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib as plt
 
-portfolio = pd.read_excel('Portfolio.xlsx', 'Sheet2', parse_date='Date', index_col='Date')
+portfolio = pd.read_excel('Portfolio.xlsx', 'Pablo', parse_date='Date', index_col='Date')
 
 #create a binary column. 1 = trade is on 0 = no trade on
 portfolio['Trade'] = 1
@@ -42,7 +42,12 @@ lossers = portfolio[lossers]
 
 winning_ratio = (len(winners)/float(trades))
 
+#Portfolio value with max drawdown
+portfolio['Ending Capital'].plot(title='Portfolio Value with Max Drawdown', legend=True)
+portfolio['Max $ Drawdown'].plot(secondary_y=True)
+
 #COMPLETE RESULTS
+
 
 print 'The percent standard deviation is ' + str('%0.2f' %(STD_PCT * 100))
 print ' '
@@ -201,17 +206,151 @@ one_stdd['Dollar Move'].cumsum().plot(style='-o', title='Cumsum of returns per s
 two_stdd['Dollar Move'].cumsum().plot(style='-*')
 three_stdd['Dollar Move'].cumsum().plot(style='-s')
 
-future_days = 5 # This is the days looking forward after T. So if you want to have 5 days in total put 4 
+#Next days analysis
+future_days = 4 # This is the days looking forward after T. So if you want to have 5 days in total put 4 
 for i in range(future_days):
-    column_name = 'Day_PCT+' + str(i+2)
-    shift_value = -(i+2)
-    portfolio[column_name] = ((portfolio['Last'].shift(shift_value) - data['Open'].shift(-1) ) / data['Open'].shift(-1) ) *100
+    column_name_short = 'Dollar move ' + str(i+1)
+    shift_value_short = -(i+1)
+    lossers[column_name_short] = (portfolio['Dollar Move'].shift(shift_value_short))
+    
+#gets the days in which the trade finished at a S,M,L loss to see what happens T days after. 
+small_loss = abs(lossers['Dollar Move']) <= STD_DOLLAR
+small_loss = lossers[small_loss]
+#median_loss =
+#big_loss =
+del small_loss['Initial Capital']
+del small_loss['Ending Capital']
+del small_loss['Percent Move']
+del small_loss['In a Trade']
+del small_loss['Cash Movements']
+del small_loss['Trade']
+del small_loss['Peak']
+del small_loss['Max $ Drawdown']
+del small_loss['Max % Drawdown']
+del small_loss['Dollar Move']
 
-data['Day_PCT_Short'] = (-((data['Last'].shift(-1) - data['Open'].shift(-1))/ data['Open'].shift(-1))*100)
-for i in range(future_days):
-    column_name_short = 'Day_PCT_Short+' + str(i+2)
-    shift_value_short = -(i+2)
-    data[column_name_short] = (-((data['Last'].shift(shift_value_short) - data['Open'].shift(-1))/
-                                 data['Open'].shift(-1))* 100)
-                                 
-                                 
+# get the averages
+#Day_0 = average(small_loss['Dollar Move'])
+Day_1 =average(small_loss['Dollar move 1'])
+Day_2 =average(small_loss['Dollar move 2'])
+Day_3 =average(small_loss['Dollar move 3'])
+Day_4 =average(small_loss['Dollar move 4'])
+
+
+Avg = pd.DataFrame(index=['1'])
+#Avg['Avg_1_Day'] = Day_0
+Avg['Avg_2_Day'] = Day_1
+Avg['Avg_3_Day'] = Day_2
+Avg['Avg_4_Day'] = Day_3
+Avg['Avg_5_Day'] = Day_4
+
+Avg.plot(kind='bar', title='Average Move T Days After Event')
+
+small_loss.cumsum().plot()
+
+#gets the days in which the trade finished at a S,M,L loss to see what happens T days after. 
+medium_loss = abs(lossers['Dollar Move']) <= (STD_DOLLAR * 2)
+medium_loss = lossers[medium_loss]
+
+#big_loss =
+del medium_loss['Initial Capital']
+del medium_loss['Ending Capital']
+del medium_loss['Percent Move']
+del medium_loss['In a Trade']
+del medium_loss['Cash Movements']
+del medium_loss['Trade']
+del medium_loss['Peak']
+del medium_loss['Max $ Drawdown']
+del medium_loss['Max % Drawdown']
+del medium_loss['Dollar Move']
+
+
+# get the averages
+#Day_0 = average(medium_loss['Dollar Move'])
+Day_1 =average(medium_loss['Dollar move 1'])
+Day_2 =average(medium_loss['Dollar move 2'])
+Day_3 =average(medium_loss['Dollar move 3'])
+Day_4 =average(medium_loss['Dollar move 4'])
+
+Avg = pd.DataFrame(index=['1'])
+#Avg['Avg_1_Day'] = Day_0
+Avg['Avg_2_Day'] = Day_1
+Avg['Avg_3_Day'] = Day_2
+Avg['Avg_4_Day'] = Day_3
+Avg['Avg_5_Day'] = Day_4
+
+Avg.plot(kind='bar', title='Average Move T Days After Event')
+
+medium_loss.cumsum().plot()
+
+#gets the days in which the trade finished at a S,M,L loss to see what happens T days after. 
+big_loss = abs(lossers['Dollar Move']) > (STD_DOLLAR * 2)
+big_loss = lossers[big_loss]
+
+#big_loss =
+del big_loss['Initial Capital']
+del big_loss['Ending Capital']
+del big_loss['Percent Move']
+del big_loss['In a Trade']
+del big_loss['Cash Movements']
+del big_loss['Trade']
+del big_loss['Peak']
+del big_loss['Max $ Drawdown']
+del big_loss['Max % Drawdown']
+del big_loss['Dollar Move']
+
+# get the averages
+#Day_0 = average(big_loss['Dollar Move'])
+Day_1 =average(big_loss['Dollar move 1'])
+Day_2 =average(big_loss['Dollar move 2'])
+Day_3 =average(big_loss['Dollar move 3'])
+Day_4 =average(big_loss['Dollar move 4'])
+
+Avg = pd.DataFrame(index=['1'])
+#Avg['Avg_1_Day'] = Day_0
+Avg['Avg_2_Day'] = Day_1
+Avg['Avg_3_Day'] = Day_2
+Avg['Avg_4_Day'] = Day_3
+Avg['Avg_5_Day'] = Day_4
+
+Avg.plot(kind='bar', title='Average Move T Days After Event')
+
+big_loss.cumsum().plot()
+
+#gets the days in which the trade finished at a bigger than $X loss to see what happens T days after. 
+dollar_loss = abs(lossers['Dollar Move']) > int(raw_input('Enter the dollar amount to check '))
+dollar_loss = lossers[dollar_loss]
+
+#big_loss =
+del dollar_loss['Initial Capital']
+del dollar_loss['Ending Capital']
+del dollar_loss['Percent Move']
+del dollar_loss['In a Trade']
+del dollar_loss['Cash Movements']
+del dollar_loss['Trade']
+del dollar_loss['Peak']
+del dollar_loss['Max $ Drawdown']
+del dollar_loss['Max % Drawdown']
+del dollar_loss['Dollar Move']
+
+# get the averages
+#Day_0 = average(big_loss['Dollar Move'])
+Day_1 =average(dollar_loss['Dollar move 1'])
+Day_2 =average(dollar_loss['Dollar move 2'])
+Day_3 =average(dollar_loss['Dollar move 3'])
+Day_4 =average(dollar_loss['Dollar move 4'])
+
+Avg = pd.DataFrame(index=['1'])
+#Avg['Avg_1_Day'] = Day_0
+Avg['Avg_2_Day'] = Day_1
+Avg['Avg_3_Day'] = Day_2
+Avg['Avg_4_Day'] = Day_3
+Avg['Avg_5_Day'] = Day_4
+
+Avg.plot(kind='bar', title='Average Move T Days After Event')
+
+dollar_loss.cumsum().plot()
+
+portfolio['Dollar Move'].cumsum().plot()
+one_std['Dollar Move'].cumsum().plot(style='--', title='Cumsum of returns for +/- 1 std (from % rets)', legend=True)
+
